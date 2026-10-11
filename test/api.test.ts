@@ -236,7 +236,25 @@ async function runTests() {
     }
     origLog(' Passed\n\n');
 
-    origLog('🎉 ALL 9 TESTS PASSED SUCCESSFULLY! TypeScript CRUD API is working perfectly.\n\n');
+    // 10. Swagger UI HTML endpoint
+    origLog('Test 10: Swagger UI HTML endpoint (GET /docs)\n');
+    const swaggerUiRes = await makeRequest({ method: 'GET', path: '/docs' });
+    origLog(`Status: ${swaggerUiRes.statusCode}, Contains SwaggerUI: ${String(swaggerUiRes.body).includes('swagger-ui')}\n`);
+    if (swaggerUiRes.statusCode !== 200 || !String(swaggerUiRes.body).includes('swagger-ui')) {
+      throw new Error('Swagger UI page rendering failed');
+    }
+    origLog(' Passed\n\n');
+
+    // 11. Swagger OpenAPI JSON endpoint
+    origLog('Test 11: OpenAPI JSON spec endpoint (GET /docs/json)\n');
+    const swaggerJsonRes = await makeRequest({ method: 'GET', path: '/docs/json' });
+    origLog(`Status: ${swaggerJsonRes.statusCode}, Title: ${swaggerJsonRes.body?.info?.title}\n`);
+    if (swaggerJsonRes.statusCode !== 200 || swaggerJsonRes.body?.openapi !== '3.0.3') {
+      throw new Error('Swagger OpenAPI JSON endpoint failed');
+    }
+    origLog(' Passed\n\n');
+
+    origLog('🎉 ALL 11 TESTS PASSED SUCCESSFULLY! TypeScript CRUD + Swagger API is working perfectly.\n\n');
   } catch (err: any) {
     origErr(`❌ Test failed with error: ${err?.message || err}\n`);
     process.exitCode = 1;

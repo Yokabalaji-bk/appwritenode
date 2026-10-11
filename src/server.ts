@@ -8,6 +8,25 @@ dotenv.config();
 
 const PORT = Number(process.env.PORT) || 3000;
 
+// Direct process streams to prevent infinite recursion when AppExpress overrides console.log / console.error
+const writeStdout = (prefix: string, messages: unknown[]): void => {
+  const formatted = messages
+    .map((m) =>
+      m instanceof Error ? m.stack || m.message : typeof m === 'object' ? JSON.stringify(m) : String(m)
+    )
+    .join(' ');
+  process.stdout.write(prefix ? `${prefix} ${formatted}\n` : `${formatted}\n`);
+};
+
+const writeStderr = (prefix: string, messages: unknown[]): void => {
+  const formatted = messages
+    .map((m) =>
+      m instanceof Error ? m.stack || m.message : typeof m === 'object' ? JSON.stringify(m) : String(m)
+    )
+    .join(' ');
+  process.stderr.write(prefix ? `${prefix} ${formatted}\n` : `${formatted}\n`);
+};
+
 /**
  * Local HTTP Development Server
  *
@@ -79,8 +98,8 @@ const server = http.createServer(async (req, res) => {
         return { body: '', statusCode, headers: { location: url, ...headers } };
       },
     },
-    log: (...messages: unknown[]) => console.log('[AppExpress Log]', ...messages),
-    error: (...messages: unknown[]) => console.error('[AppExpress Error]', ...messages),
+    log: (...messages: unknown[]) => writeStdout('[AppExpress Log]', messages),
+    error: (...messages: unknown[]) => writeStderr('[AppExpress Error]', messages),
   };
 
   try {
@@ -100,7 +119,7 @@ const server = http.createServer(async (req, res) => {
       res.end(String(body));
     }
   } catch (err: any) {
-    console.error('[Server Error]', err);
+    writeStderr('[Server Error]', [err]);
     res.writeHead(500, { 'content-type': 'application/json' });
     res.end(
       JSON.stringify({
@@ -112,18 +131,34 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// Handle server-level errors gracefully
+server.on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    writeStderr(`[Server Error] Port ${PORT} is already in use by another process.`, [
+      `Please terminate the process on port ${PORT} or change PORT in .env`,
+    ]);
+  } else {
+    writeStderr('[Server Error]', [err]);
+  }
+  process.exit(1);
+});
+
 // Start listening after verifying MongoDB Atlas connectivity
 connectDB()
   .then(() => {
     server.listen(PORT, () => {
-      console.log(`\n=================================================`);
-      console.log(`🚀 TypeScript AppExpress Server: http://localhost:${PORT}`);
-      console.log(`📊 Health Check:  http://localhost:${PORT}/health`);
-      console.log(`👥 Users API:     http://localhost:${PORT}/api/users`);
-      console.log(`=================================================\n`);
+      writeStdout('', [
+        `=================================================`,
+        `🚀 TypeScript AppExpress Server: http://localhost:${PORT}`,
+        `📖 Swagger UI Docs:  http://localhost:${PORT}/docs`,
+        `📄 OpenAPI Spec JSON: http://localhost:${PORT}/docs/json`,
+        `📊 Health Check:      http://localhost:${PORT}/health`,
+        `👥 Users API:         http://localhost:${PORT}/api/users`,
+        `=================================================`,
+      ]);
     });
   })
   .catch((err: any) => {
-    console.error('Failed to start server due to database error:', err?.message || err);
+    writeStderr('Failed to start server due to database error:', [err?.message || err]);
     process.exit(1);
   });

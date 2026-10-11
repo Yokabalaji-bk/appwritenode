@@ -1,14 +1,15 @@
-# Appwrite Function: AppExpress + Mongoose + Zod User CRUD (TypeScript)
+# Appwrite Function: AppExpress + Mongoose + Zod User CRUD (TypeScript) + Swagger
 
-A production-ready **TypeScript** REST API built for **[Appwrite Functions](https://appwrite.io/docs/products/functions)** using **[@itznotabug/appexpress](https://github.com/itznotabug/appexpress)**, **[Mongoose](https://mongoosejs.com/)**, and **[Zod](https://zod.dev/)**.
+A production-ready **TypeScript** REST API built for **[Appwrite Functions](https://appwrite.io/docs/products/functions)** using **[@itznotabug/appexpress](https://github.com/itznotabug/appexpress)**, **[Mongoose](https://mongoosejs.com/)**, **[Zod](https://zod.dev/)**, and **Interactive Swagger UI**.
 
-It includes serverless connection caching for MongoDB Atlas, structured request logging, type-safe Zod validation middlewares, full User CRUD functionality, and a standalone local HTTP server for development and testing.
+It includes serverless connection caching for MongoDB Atlas, structured request logging, type-safe Zod validation middlewares, full User CRUD functionality, interactive OpenAPI 3.0 documentation, and a standalone local HTTP server for development and testing.
 
 ---
 
 ## 🚀 Features
 
 - **TypeScript-First**: 100% strictly typed with TypeScript 5 (`NodeNext` module resolution).
+- **Interactive Swagger UI**: Built-in Swagger UI documentation accessible at `/docs` (or `/swagger`, `/api-docs`) with raw OpenAPI 3.0 spec at `/docs/json`.
 - **AppExpress Routing**: Utilizes `@itznotabug/appexpress` to provide an Express-like routing and middleware developer experience tailored for Appwrite Functions.
 - **Serverless Mongoose Optimization**: Connection reuse & pooling across serverless function invocations to eliminate cold-start DB latency and prevent connection exhaustion.
 - **Zod Validation Middleware**: Declarative, reusable Higher-Order Function middleware (`validate({ body, params, query })`) returning clean HTTP 400 validation error responses.
@@ -22,6 +23,18 @@ It includes serverless connection caching for MongoDB Atlas, structured request 
 - **Dual Runtime Support**:
   - Deploy directly to **Appwrite Functions** via `src/main.ts` (`dist/main.js`).
   - Run locally as a standalone Node.js HTTP server via `npm run dev` or `npm start`.
+
+---
+
+## 📖 Swagger Documentation
+
+| URL | Format | Description |
+|---|---|---|
+| `http://localhost:3000/docs` | HTML | Interactive Swagger UI (with "Try It Out") |
+| `http://localhost:3000/swagger` | HTML | Alias for Swagger UI |
+| `http://localhost:3000/api-docs` | HTML | Alias for Swagger UI |
+| `http://localhost:3000/docs/json` | JSON | OpenAPI 3.0 raw specification |
+| `http://localhost:3000/swagger.json` | JSON | Alias for OpenAPI specification |
 
 ---
 
@@ -42,6 +55,9 @@ d:/projects/appwritesample/
 │   │   └── user.model.ts      # IUser interface and Mongoose User schema & model
 │   ├── schemas/
 │   │   └── user.schema.ts     # Zod validation schemas and inferred TypeScript types
+│   ├── docs/
+│   │   ├── swagger.spec.ts    # OpenAPI 3.0 specification definition
+│   │   └── swagger.ui.ts      # Swagger UI HTML renderer
 │   ├── types/
 │   │   └── appexpress.ts      # Appwrite & AppExpress TypeScript type definitions
 │   ├── middlewares/
@@ -51,12 +67,13 @@ d:/projects/appwritesample/
 │   ├── controllers/
 │   │   └── user.controller.ts # User CRUD handlers
 │   ├── routes/
-│   │   └── user.routes.ts     # AppExpress.Router user routes
+│   │   ├── user.routes.ts     # AppExpress.Router user routes
+│   │   └── swagger.routes.ts  # Swagger documentation routes
 │   ├── app.ts                 # AppExpress app configuration & middleware pipeline
 │   ├── main.ts                # Appwrite Function entry point (`app.attach(context)`)
 │   └── server.ts              # Local HTTP development server
 └── test/
-    └── api.test.ts            # Automated E2E test suite (Health, CRUD, Validation)
+    └── api.test.ts            # Automated E2E test suite (Health, CRUD, Validation, Swagger)
 ```
 
 ---
@@ -88,6 +105,7 @@ Starts the local development server with live reload on `http://localhost:3000`:
 ```bash
 npm run dev
 ```
+Navigate to **`http://localhost:3000/docs`** in your browser to test endpoints visually.
 
 ### 3. Build Production Bundle
 Compiles TypeScript into `dist/`:
@@ -96,7 +114,7 @@ npm run build
 ```
 
 ### 4. Run Automated Tests
-Runs the test suite against MongoDB:
+Runs the test suite against MongoDB Atlas (including Swagger routes):
 ```bash
 npm test
 ```
@@ -109,43 +127,17 @@ npm run typecheck
 
 ---
 
-## 🛡️ Middlewares
+## 📡 API Endpoints & Examples
 
-### 1. Database Connection Middleware (`src/middlewares/db.middleware.ts`)
-Ensures an active Mongoose connection before any route handler executes:
-```typescript
-import { dbMiddleware } from './middlewares/db.middleware.js';
-
-app.middleware(dbMiddleware);
+### 1. Interactive Swagger UI
+Open in your browser:
 ```
-
-### 2. Request Logger Middleware (`src/middlewares/logger.middleware.ts`)
-Logs incoming HTTP method, path, and timestamp using Appwrite's `context.log` or standard console:
-```typescript
-import { loggerMiddleware } from './middlewares/logger.middleware.js';
-
-app.middleware(loggerMiddleware);
-```
-
-### 3. Zod Validation Middleware (`src/middlewares/validate.middleware.ts`)
-Intercepts incoming requests, validates body, query, or path parameters, attaches type-safe validated properties (`request.validatedBody`, `request.validatedParams`, `request.validatedQuery`), or immediately returns a 400 Bad Request error:
-```typescript
-router.post(
-  '/',
-  validate({ body: createUserSchema })(createUser)
-);
-
-router.get(
-  '/:id',
-  validate({ params: userIdParamSchema })(getUserById)
-);
+http://localhost:3000/docs
 ```
 
 ---
 
-## 📡 API Endpoints & Examples
-
-### 1. Health Check
+### 2. Health Check
 ```bash
 curl http://localhost:3000/health
 ```
@@ -161,7 +153,7 @@ curl http://localhost:3000/health
 
 ---
 
-### 2. Create User (POST `/api/users`)
+### 3. Create User (POST `/api/users`)
 ```bash
 curl -X POST http://localhost:3000/api/users \
   -H "Content-Type: application/json" \
@@ -192,7 +184,7 @@ curl -X POST http://localhost:3000/api/users \
 
 ---
 
-### 3. Zod Validation Error Example
+### 4. Zod Validation Error Example
 ```bash
 curl -X POST http://localhost:3000/api/users \
   -H "Content-Type: application/json" \
@@ -232,47 +224,22 @@ curl -X POST http://localhost:3000/api/users \
 
 ---
 
-### 4. Get All Users (GET `/api/users`)
+### 5. Get All Users (GET `/api/users`)
 Supports query parameters: `page`, `limit`, `search`, `role`, `isActive`.
 ```bash
 curl "http://localhost:3000/api/users?page=1&limit=10&role=admin"
 ```
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": "6acb734d3a657b55a222a882",
-      "name": "Sarah Connor",
-      "email": "sarah.connor@example.com",
-      "age": 29,
-      "role": "admin",
-      "isActive": true,
-      "createdAt": "2026-10-11T11:30:21.501Z"
-    }
-  ],
-  "pagination": {
-    "totalUsers": 1,
-    "totalPages": 1,
-    "currentPage": 1,
-    "limit": 10,
-    "hasNextPage": false,
-    "hasPrevPage": false
-  }
-}
-```
 
 ---
 
-### 5. Get User by ID (GET `/api/users/:id`)
+### 6. Get User by ID (GET `/api/users/:id`)
 ```bash
 curl http://localhost:3000/api/users/6acb734d3a657b55a222a882
 ```
 
 ---
 
-### 6. Update User (PUT or PATCH `/api/users/:id`)
+### 7. Update User (PUT or PATCH `/api/users/:id`)
 ```bash
 curl -X PUT http://localhost:3000/api/users/6acb734d3a657b55a222a882 \
   -H "Content-Type: application/json" \
@@ -284,20 +251,9 @@ curl -X PUT http://localhost:3000/api/users/6acb734d3a657b55a222a882 \
 
 ---
 
-### 7. Delete User (DELETE `/api/users/:id`)
+### 8. Delete User (DELETE `/api/users/:id`)
 ```bash
 curl -X DELETE http://localhost:3000/api/users/6acb734d3a657b55a222a882
-```
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "message": "User deleted successfully",
-  "data": {
-    "id": "6acb734d3a657b55a222a882",
-    "name": "Sarah Connor Brewster"
-  }
-}
 ```
 
 ---
@@ -310,4 +266,4 @@ When deploying to Appwrite Functions (Console or CLI):
 2. **Build Command**: `npm run build`
 3. **Environment Variables**: In Appwrite Console under **Function > Settings > Variables**, add:
    - `MONGODB_URI`: `mongodb+srv://new-user01:591MPNTDNNGnkeoD@cluster0.dm3sn0b.mongodb.net/appwrite_users?retryWrites=true&w=majority`
-4. In Appwrite, every request to the function URL automatically attaches through `app.attach(context)`.
+4. Requests to `<FUNCTION_URL>/docs` will render the interactive Swagger UI.
